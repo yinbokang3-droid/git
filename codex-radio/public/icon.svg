@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Codex Radio">
+  <rect width="128" height="128" rx="24" fill="#080a0d"/>
+  <path d="M28 72c0-22 14-38 36-38s36 16 36 38" fill="none" stroke="#d0a85b" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="64" cy="72" r="24" fill="#6ea6e3"/>
+  <circle cx="64" cy="72" r="9" fill="#080a0d"/>
+  <path d="M30 88h68" stroke="#6cce91" stroke-width="10" stroke-linecap="round"/>
+</svg>

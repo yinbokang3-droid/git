@@ -1,0 +1,5 @@
+data/netease-session.json
+.env
+.env.local
+public/media/*
+!public/media/.gitkeep

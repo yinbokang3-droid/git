@@ -1,0 +1,27 @@
+{
+  "name": "你",
+  "city": "广州",
+  "preferredTags": [
+    "focus",
+    "calm",
+    "clean",
+    "warm",
+    "electronic"
+  ],
+  "blockedTags": [
+    "fast"
+  ],
+  "voiceEnabled": true,
+  "voiceMode": "neural",
+  "neuralVoice": "zh-CN-XiaoxiaoNeural",
+  "crossfade": 6,
+  "routines": {
+    "morning": "先轻一点，慢慢把精神提起来。",
+    "work": "需要稳定、有节奏，但不要太吵。",
+    "evening": "适合收尾、散步、整理今天。",
+    "night": "声音要低，少说话。"
+  },
+  "voiceName": "",
+  "voiceRate": 0.95,
+  "voicePitch": 0.9
+}

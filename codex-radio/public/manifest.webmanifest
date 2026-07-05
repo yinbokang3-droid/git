@@ -1,0 +1,22 @@
+{
+  "name": "Codex Radio",
+  "short_name": "Codex Radio",
+  "description": "沉浸式网易云音乐播放器，支持队列播放、推荐歌曲和动态专辑封面粒子视觉。",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "lang": "zh-CN",
+  "orientation": "portrait-primary",
+  "categories": ["music", "entertainment"],
+  "display": "standalone",
+  "background_color": "#050607",
+  "theme_color": "#080a0d",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

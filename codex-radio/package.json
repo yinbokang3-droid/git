@@ -1,0 +1,14 @@
+{
+  "name": "codex-radio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check server.js && node --check public/app.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "NeteaseCloudMusicApi": "^4.32.0",
+    "ws": "^8.21.0"
+  }
+}

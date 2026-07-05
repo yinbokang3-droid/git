@@ -1,0 +1,452 @@
+{
+  "currentTrackId": "netease-209028",
+  "queue": [
+    "netease-209028",
+    "glass-morning",
+    "found-window",
+    "jade-coast",
+    "netease-459717345",
+    "netease-1964093623",
+    "netease-432844920",
+    "netease-1968781675"
+  ],
+  "history": [
+    "netease-432808080",
+    "netease-108640",
+    "netease-2717465891",
+    "netease-1397122274",
+    "netease-409931770",
+    "netease-569213220"
+  ],
+  "messages": [
+    {
+      "role": "codex",
+      "text": "我在。先连接你的网易云账号，或者手动导入本地音频，然后我再帮你排歌。",
+      "time": "21:00"
+    },
+    {
+      "role": "user",
+      "text": "连接",
+      "time": "23:05"
+    },
+    {
+      "role": "codex",
+      "text": "按你刚才的状态，我选《玻璃晨光》开场。后面会接 《旧院子》、《青玉海岸》。",
+      "time": "23:05"
+    },
+    {
+      "role": "user",
+      "text": "放阴天",
+      "time": "23:20"
+    },
+    {
+      "role": "codex",
+      "text": "按你刚才的状态，我选《旧院子》开场。后面会接 《玻璃晨光》、《温柔重启》。",
+      "time": "23:20"
+    },
+    {
+      "role": "user",
+      "text": "帮我放一首适合工作的安静中文歌，如果不行就下一首",
+      "time": "23:51"
+    },
+    {
+      "role": "codex",
+      "text": "为你找一首安静的中文歌来工作",
+      "time": "23:51"
+    },
+    {
+      "role": "user",
+      "text": "停一下，先别播放了",
+      "time": "23:59"
+    },
+    {
+      "role": "codex",
+      "text": "好的，已暂停播放。",
+      "time": "23:59"
+    },
+    {
+      "role": "user",
+      "text": "你好帮我放一首欢快的中文歌",
+      "time": "00:01"
+    },
+    {
+      "role": "codex",
+      "text": "好嘞，给你找一首欢快的中文歌！",
+      "time": "00:01"
+    },
+    {
+      "role": "user",
+      "text": "你好",
+      "time": "00:01"
+    },
+    {
+      "role": "codex",
+      "text": "早上好，现在是凌晨，夜色正浓。为你推荐一首轻柔的曲子，慢慢唤醒耳朵。",
+      "time": "00:01"
+    },
+    {
+      "role": "user",
+      "text": "帮我搜索网易云播放 红唇",
+      "time": "00:19"
+    },
+    {
+      "role": "codex",
+      "text": "好的，马上为你播放安静演唱的《红唇》。",
+      "time": "00:19"
+    },
+    {
+      "role": "user",
+      "text": "随机播放我喜欢歌单里面的歌单放完就下一首",
+      "time": "00:55"
+    },
+    {
+      "role": "codex",
+      "text": "好的，播放完当前歌单后自动切到下一首。",
+      "time": "00:55"
+    },
+    {
+      "role": "user",
+      "text": "别放了",
+      "time": "17:35"
+    },
+    {
+      "role": "codex",
+      "text": "好的，先停一下。",
+      "time": "17:35"
+    },
+    {
+      "role": "user",
+      "text": "那你能回答我的问题吗",
+      "time": "21:43"
+    },
+    {
+      "role": "codex",
+      "text": "当然可以，我随时准备回答你的问题。",
+      "time": "21:43"
+    },
+    {
+      "role": "user",
+      "text": "银河系有多大",
+      "time": "21:44"
+    },
+    {
+      "role": "codex",
+      "text": "银河系直径约10万光年，包含数千亿颗恒星。",
+      "time": "21:44"
+    },
+    {
+      "role": "user",
+      "text": "太阳系呢",
+      "time": "21:44"
+    },
+    {
+      "role": "codex",
+      "text": "好的，为你搜索关于太阳系的歌曲。",
+      "time": "21:44"
+    },
+    {
+      "role": "user",
+      "text": "我是问你太阳系有多大",
+      "time": "21:44"
+    },
+    {
+      "role": "codex",
+      "text": "你正在听的是《太陽系デスコ》，一首关于太阳系的电子舞曲，所以你的问题正好呼应了这首歌的宇宙主题。",
+      "time": "21:44"
+    },
+    {
+      "role": "user",
+      "text": "地球有多大",
+      "time": "21:58"
+    },
+    {
+      "role": "codex",
+      "text": "地球的直径约12742公里，不过现在更适合听歌放松哦。",
+      "time": "21:58"
+    }
+  ],
+  "likes": [],
+  "dislikes": [],
+  "plan": [
+    {
+      "id": "morning",
+      "label": "早间",
+      "intent": {
+        "tags": [
+          "morning",
+          "clean",
+          "fresh"
+        ],
+        "energy": 2,
+        "segment": "morning"
+      },
+      "trackIds": [
+        "glass-morning",
+        "found-window",
+        "jade-coast"
+      ],
+      "summary": "玻璃晨光 / 找到一扇窗 / 青玉海岸"
+    },
+    {
+      "id": "work",
+      "label": "专注",
+      "intent": {
+        "tags": [
+          "focus",
+          "work",
+          "steady"
+        ],
+        "energy": 3,
+        "segment": "work"
+      },
+      "trackIds": [
+        "city-breath",
+        "spark-task",
+        "glass-morning"
+      ],
+      "summary": "城市呼吸 / 任务火花 / 玻璃晨光"
+    },
+    {
+      "id": "evening",
+      "label": "傍晚",
+      "intent": {
+        "tags": [
+          "evening",
+          "warm",
+          "commute"
+        ],
+        "energy": 2,
+        "segment": "evening"
+      },
+      "trackIds": [
+        "train-home",
+        "city-breath",
+        "jade-coast"
+      ],
+      "summary": "回家的列车 / 城市呼吸 / 青玉海岸"
+    },
+    {
+      "id": "night",
+      "label": "夜里",
+      "intent": {
+        "tags": [
+          "night",
+          "soft",
+          "ambient"
+        ],
+        "energy": 1,
+        "segment": "night"
+      },
+      "trackIds": [
+        "rain-on-code",
+        "paper-moon",
+        "old-courtyard"
+      ],
+      "summary": "雨落代码 / 纸月亮 / 旧院子"
+    }
+  ],
+  "lastReason": "根据你的偏好和最近播放，从网易云随机搜索了一组不在你歌单里的新推荐。",
+  "recommendations": [
+    {
+      "id": "netease-2744025680",
+      "title": "一只鸡蛋，简单却深情 超好聽溫暖動人的中文歌",
+      "artist": "Lord Jesus Music",
+      "album": "一只鸡蛋，简单却深情 超好聽溫暖動人的中文歌",
+      "duration": 363,
+      "bpm": 114,
+      "energy": 3,
+      "tone": 171,
+      "mood": "clean",
+      "tags": [
+        "netease",
+        "imported",
+        "clean"
+      ],
+      "colors": [
+        "hsl(254 38% 24%)",
+        "hsl(308 58% 56%)",
+        "hsl(26 45% 48%)"
+      ],
+      "source": "netease",
+      "neteaseId": "2744025680",
+      "externalUrl": "https://music.163.com/#/song?id=2744025680",
+      "recommendationSource": "搜索 · 温暖 中文歌"
+    },
+    {
+      "id": "netease-1403318151",
+      "title": "把回忆拼好给你",
+      "artist": "王贰浪",
+      "album": "把回忆拼好给你",
+      "duration": 381,
+      "bpm": 114,
+      "energy": 3,
+      "tone": 300,
+      "mood": "clean",
+      "tags": [
+        "netease",
+        "imported",
+        "clean"
+      ],
+      "colors": [
+        "hsl(28 38% 24%)",
+        "hsl(82 58% 56%)",
+        "hsl(160 45% 48%)"
+      ],
+      "source": "netease",
+      "neteaseId": "1403318151",
+      "externalUrl": "https://music.163.com/#/song?id=1403318151",
+      "recommendationSource": "搜索 · 小众中文歌"
+    },
+    {
+      "id": "netease-2743848471",
+      "title": "超好聽溫暖動人的中文歌 《思念成疾》(second version)",
+      "artist": "Cheung Kam Fai 張錦輝",
+      "album": "超好聽溫暖動人的中文歌 《思念成疾》(second version)",
+      "duration": 279,
+      "bpm": 114,
+      "energy": 3,
+      "tone": 191,
+      "mood": "clean",
+      "tags": [
+        "netease",
+        "imported",
+        "clean"
+      ],
+      "colors": [
+        "hsl(100 38% 24%)",
+        "hsl(154 58% 56%)",
+        "hsl(232 45% 48%)"
+      ],
+      "source": "netease",
+      "neteaseId": "2743848471",
+      "externalUrl": "https://music.163.com/#/song?id=2743848471",
+      "recommendationSource": "搜索 · 温暖 中文歌"
+    },
+    {
+      "id": "netease-1843731424",
+      "title": "我们的乐队-溯(干净女声)（Arrebol ）",
+      "artist": "Arrebol",
+      "album": "夏天",
+      "duration": 192,
+      "bpm": 114,
+      "energy": 3,
+      "tone": 202,
+      "mood": "clean",
+      "tags": [
+        "netease",
+        "imported",
+        "clean"
+      ],
+      "colors": [
+        "hsl(218 38% 24%)",
+        "hsl(272 58% 56%)",
+        "hsl(350 45% 48%)"
+      ],
+      "source": "netease",
+      "neteaseId": "1843731424",
+      "externalUrl": "https://music.163.com/#/song?id=1843731424",
+      "recommendationSource": "搜索 · 干净女声"
+    },
+    {
+      "id": "netease-2744024885",
+      "title": "《一碗白粥，两枚鸡蛋的永恒》超好聽溫暖動人的中文歌",
+      "artist": "Cheung Kam Fai 張錦輝",
+      "album": "《一碗白粥，两枚鸡蛋的永恒》超好聽溫暖動人的中文歌",
+      "duration": 408,
+      "bpm": 114,
+      "energy": 3,
+      "tone": 181,
+      "mood": "clean",
+      "tags": [
+        "netease",
+        "imported",
+        "clean"
+      ],
+      "colors": [
+        "hsl(44 38% 24%)",
+        "hsl(98 58% 56%)",
+        "hsl(176 45% 48%)"
+      ],
+      "source": "netease",
+      "neteaseId": "2744024885",
+      "externalUrl": "https://music.163.com/#/song?id=2744024885",
+      "recommendationSource": "搜索 · 温暖 中文歌"
+    },
+    {
+      "id": "netease-1845668239",
+      "title": "安静的80年代的心情声音",
+      "artist": "中文 日本城市流行乐",
+      "album": "严重80年代的心情周围环境",
+      "duration": 154,
+      "bpm": 114,
+      "energy": 3,
+      "tone": 285,
+      "mood": "clean",
+      "tags": [
+        "netease",
+        "imported",
+        "clean"
+      ],
+      "colors": [
+        "hsl(178 38% 24%)",
+        "hsl(232 58% 56%)",
+        "hsl(310 45% 48%)"
+      ],
+      "source": "netease",
+      "neteaseId": "1845668239",
+      "externalUrl": "https://music.163.com/#/song?id=1845668239",
+      "recommendationSource": "搜索 · 安静 中文流行"
+    },
+    {
+      "id": "netease-2744204148",
+      "title": "《风雨中携手前行》超好聽溫暖動人的中文歌",
+      "artist": "Cheung Kam Fai 張錦輝",
+      "album": "《风雨中携手前行》超好聽溫暖動人的中文歌",
+      "duration": 299,
+      "bpm": 114,
+      "energy": 3,
+      "tone": 193,
+      "mood": "rain",
+      "tags": [
+        "netease",
+        "imported",
+        "rain",
+        "clean"
+      ],
+      "colors": [
+        "hsl(166 38% 24%)",
+        "hsl(220 58% 56%)",
+        "hsl(298 45% 48%)"
+      ],
+      "source": "netease",
+      "neteaseId": "2744204148",
+      "externalUrl": "https://music.163.com/#/song?id=2744204148",
+      "recommendationSource": "搜索 · 温暖 中文歌"
+    },
+    {
+      "id": "netease-1884038433",
+      "title": "突然想起你（cover林宥嘉）",
+      "artist": "李杗",
+      "album": "突然想起你",
+      "duration": 279,
+      "bpm": 114,
+      "energy": 3,
+      "tone": 184,
+      "mood": "clean",
+      "tags": [
+        "netease",
+        "imported",
+        "clean"
+      ],
+      "colors": [
+        "hsl(37 38% 24%)",
+        "hsl(91 58% 56%)",
+        "hsl(169 45% 48%)"
+      ],
+      "source": "netease",
+      "neteaseId": "1884038433",
+      "externalUrl": "https://music.163.com/#/song?id=1884038433",
+      "recommendationSource": "搜索 · 温柔 华语"
+    }
+  ]
+}
