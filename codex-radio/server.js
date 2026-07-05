@@ -1743,6 +1743,11 @@ async function serveStatic(req, res, pathname) {
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, "http://localhost");
+    const routedPath = url.searchParams.get("__path");
+    if (routedPath !== null) {
+      url.searchParams.delete("__path");
+      url.pathname = `/${routedPath}`.replace(/\/+/g, "/");
+    }
     if (url.pathname === "/stream") return handleStream(req, res);
     if (url.pathname.startsWith("/api/")) return handleApi(req, res, url.pathname);
     return serveStatic(req, res, url.pathname);

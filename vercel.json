@@ -18,7 +18,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/codex-radio/server.js"
+      "dest": "/codex-radio/server.js?__path=$1"
     }
   ]
 }
