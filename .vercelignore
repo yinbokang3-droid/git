@@ -1,0 +1,8 @@
+node_modules/
+codex-radio/node_modules/
+output/
+codex-radio/data/netease-session.json
+codex-radio/.env
+codex-radio/.env.local
+codex-radio/public/media/*
+!codex-radio/public/media/.gitkeep

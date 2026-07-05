@@ -1,0 +1,26 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "installCommand": "cd codex-radio && npm ci",
+  "builds": [
+    {
+      "src": "codex-radio/server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/codex-radio/server.js"
+    }
+  ],
+  "functions": {
+    "codex-radio/server.js": {
+      "includeFiles": [
+        "codex-radio/data/catalog.json",
+        "codex-radio/data/profile.json",
+        "codex-radio/data/state.json"
+      ]
+    }
+  }
+}
