@@ -5,7 +5,14 @@
   "builds": [
     {
       "src": "codex-radio/server.js",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "codex-radio/data/catalog.json",
+          "codex-radio/data/profile.json",
+          "codex-radio/data/state.json"
+        ]
+      }
     }
   ],
   "routes": [
@@ -13,14 +20,5 @@
       "src": "/(.*)",
       "dest": "/codex-radio/server.js"
     }
-  ],
-  "functions": {
-    "codex-radio/server.js": {
-      "includeFiles": [
-        "codex-radio/data/catalog.json",
-        "codex-radio/data/profile.json",
-        "codex-radio/data/state.json"
-      ]
-    }
-  }
+  ]
 }
