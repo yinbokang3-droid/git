@@ -88,6 +88,7 @@ const app = {
   media: null,
   mediaToken: 0,
   mediaTrackKey: "",
+  mediaSessionReady: false,
   nodes: [],
   analyser: null,
   animation: null,
@@ -402,6 +403,7 @@ function seekToRatio(ratio) {
   const target = Math.max(0, Math.min(1, Number(ratio) || 0)) * duration;
   app.media.currentTime = target;
   updateProgress(target);
+  updateMediaPositionState();
 }
 
 function trackKey(track) {
@@ -485,6 +487,7 @@ function render(payload = app.state) {
   cover.style.setProperty("--cover-b", current.colors?.[1] || "#d0a85b");
   cover.style.setProperty("--cover-c", current.colors?.[2] || "#5f8fc8");
   updateAlbumCover(current);
+  updateMediaSession(current);
   const currentKey = trackKey(current);
   const mediaIsPlayingDifferentTrack = Boolean(app.media?.src && app.mediaTrackKey && app.mediaTrackKey !== currentKey);
   if (mediaIsPlayingDifferentTrack) {
@@ -812,20 +815,125 @@ function ensureMediaElement() {
     app.media = new Audio();
     app.media.preload = "auto";
     app.media.autoplay = false;
+    app.media.controls = false;
+    app.media.setAttribute("playsinline", "");
+    app.media.setAttribute("webkit-playsinline", "");
   }
   return app.media;
+}
+
+function mediaArtwork(track) {
+  const cover = albumCoverUrl(track);
+  if (cover) {
+    return [
+      { src: cover, sizes: "96x96", type: "image/jpeg" },
+      { src: cover, sizes: "512x512", type: "image/jpeg" }
+    ];
+  }
+  return [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }];
+}
+
+function setMediaPlaybackState(state = app.playing ? "playing" : "paused") {
+  if (!("mediaSession" in navigator)) return;
+  try {
+    navigator.mediaSession.playbackState = state;
+  } catch {}
+}
+
+function updateMediaPositionState() {
+  if (!("mediaSession" in navigator) || typeof navigator.mediaSession.setPositionState !== "function") return;
+  const media = app.media;
+  const duration = Number.isFinite(media?.duration) && media.duration > 0
+    ? media.duration
+    : app.progressDuration;
+  if (!duration) return;
+  try {
+    navigator.mediaSession.setPositionState({
+      duration,
+      playbackRate: media?.playbackRate || 1,
+      position: Math.max(0, Math.min(duration, media?.currentTime || 0))
+    });
+  } catch {}
+}
+
+function updateMediaSession(track = app.state?.current) {
+  if (!("mediaSession" in navigator) || !track) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.title || "Codex Radio",
+      artist: track.artist || "Unknown Artist",
+      album: track.album || "Codex Radio",
+      artwork: mediaArtwork(track)
+    });
+  } catch {}
+  setMediaPlaybackState();
+  updateMediaPositionState();
+}
+
+function setupMediaSessionHandlers() {
+  if (!("mediaSession" in navigator) || app.mediaSessionReady) return;
+  app.mediaSessionReady = true;
+  const handlers = {
+    play: () => {
+      app.playing = true;
+      setIcon("pause");
+      if (!resumeMediaFromCurrentTime()) startTrack(app.state?.current);
+      setMediaPlaybackState("playing");
+    },
+    pause: () => {
+      app.playing = false;
+      setIcon("play");
+      if (app.media) app.media.pause();
+      setMediaPlaybackState("paused");
+    },
+    stop: () => {
+      app.playing = false;
+      setIcon("play");
+      if (app.media) app.media.pause();
+      setMediaPlaybackState("paused");
+    },
+    previoustrack: () => previousTrack(),
+    nexttrack: () => nextTrack(),
+    seekbackward: (event) => {
+      if (!app.media) return;
+      app.media.currentTime = Math.max(0, app.media.currentTime - (event.seekOffset || 10));
+      updateProgress(app.media.currentTime);
+      updateMediaPositionState();
+    },
+    seekforward: (event) => {
+      if (!app.media) return;
+      const duration = Number.isFinite(app.media.duration) ? app.media.duration : app.progressDuration;
+      app.media.currentTime = Math.min(duration || Infinity, app.media.currentTime + (event.seekOffset || 10));
+      updateProgress(app.media.currentTime);
+      updateMediaPositionState();
+    },
+    seekto: (event) => {
+      if (!app.media || !Number.isFinite(event.seekTime)) return;
+      app.media.currentTime = event.seekTime;
+      updateProgress(event.seekTime);
+      updateMediaPositionState();
+    }
+  };
+  for (const [action, handler] of Object.entries(handlers)) {
+    try {
+      navigator.mediaSession.setActionHandler(action, handler);
+    } catch {}
+  }
 }
 
 function resumeMediaFromCurrentTime() {
   if (!app.media || !app.media.src || app.media.ended) return false;
   app.playing = true;
   setIcon("pause");
+  updateMediaSession(app.state?.current);
   app.media.play().then(() => {
     app.playing = true;
     setIcon("pause");
+    setMediaPlaybackState("playing");
   }).catch(() => {
     app.playing = false;
     setIcon("play");
+    setMediaPlaybackState("paused");
     toast("浏览器拦截了播放，请再点一次播放");
   });
   startParticleCover();
@@ -881,29 +989,34 @@ function startMediaTrack(track) {
   const isCurrentMedia = () => app.media === media && app.mediaToken === token;
   media.preload = "auto";
   media.autoplay = true;
+  updateMediaSession(track);
   resetProgressForTrack(track);
   const syncDuration = () => {
     if (!isCurrentMedia()) return;
     const duration = Number.isFinite(media.duration) && media.duration > 0 ? media.duration : trackDuration(track);
     setProgressDuration(duration);
     if (!app.seeking) updateProgress(media.currentTime || 0);
+    updateMediaPositionState();
   };
   media.onloadedmetadata = syncDuration;
   media.ondurationchange = syncDuration;
   media.ontimeupdate = () => {
     if (!isCurrentMedia() || app.seeking) return;
     updateProgress(media.currentTime || 0);
+    updateMediaPositionState();
   };
   media.onended = () => {
     if (!isCurrentMedia()) return;
     app.seeking = false;
     updateProgress(app.progressDuration || media.duration || 0);
+    setMediaPlaybackState("paused");
     handleTrackEnded();
   };
   media.onerror = () => {
     if (!isCurrentMedia()) return;
     app.playing = false;
     setIcon("play");
+    setMediaPlaybackState("paused");
     stopNodes();
     toast("这首歌暂时拿不到可播放链接。换一首，或用本地音频文件手动导入。");
   };
@@ -913,10 +1026,12 @@ function startMediaTrack(track) {
     if (!isCurrentMedia()) return;
     app.playing = true;
     setIcon("pause");
+    setMediaPlaybackState("playing");
   }).catch(() => {
     if (!isCurrentMedia()) return;
     app.playing = false;
     setIcon("play");
+    setMediaPlaybackState("paused");
     toast("浏览器拦截了播放，请再点一次播放");
   });
   animateMockVisualizer();
@@ -929,11 +1044,13 @@ function togglePlay() {
     setIcon("play");
     if (app.media) app.media.pause();
     else stopNodes();
+    setMediaPlaybackState("paused");
     return;
   }
 
   app.playing = true;
   setIcon("pause");
+  setMediaPlaybackState("playing");
   if (resumeMediaFromCurrentTime()) return;
   if (false && app.media && app.progressTrackKey === trackKey(current) && !app.media.ended) {
     app.media.play().catch(() => {
@@ -2352,6 +2469,7 @@ function bindEvents() {
 async function boot() {
   await clearOldCaches().catch(() => {});
   bindEvents();
+  setupMediaSessionHandlers();
   switchView(viewFromPath(), { push: false });
   if (window.speechSynthesis) {
     loadVoices();

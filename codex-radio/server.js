@@ -93,15 +93,15 @@ function createAppProfile(value = {}) {
 }
 
 function validTrackIds(ids, limit = 80) {
-  const valid = new Set(catalog.map((track) => track.id));
+  const tracksById = new Map(catalog.map((track) => [track.id, track]));
   return uniqueIds((Array.isArray(ids) ? ids : []).map(String))
-    .filter((id) => valid.has(id))
+    .filter((id) => isPlayableTrack(tracksById.get(id)))
     .slice(0, limit);
 }
 
 function createAppState(value = {}) {
   const queue = validTrackIds(value.queue, 30);
-  const fallbackQueue = catalog.slice(0, 8).map((track) => track.id);
+  const fallbackQueue = catalog.filter(isPlayableTrack).slice(0, 8).map((track) => track.id);
   const currentTrackId = validTrackIds([value.currentTrackId], 1)[0] || queue[0] || fallbackQueue[0] || "";
   const initialQueue = queue.length ? uniqueIds([currentTrackId, ...queue]) : fallbackQueue;
   return {
@@ -481,8 +481,14 @@ function currentContext() {
   };
 }
 
+function isPlayableTrack(track) {
+  return Boolean(track?.audioUrl || track?.neteaseId);
+}
+
 function getTrack(id) {
-  return catalog.find((track) => track.id === id) || catalog[0];
+  return catalog.find((track) => track.id === id && isPlayableTrack(track))
+    || catalog.find(isPlayableTrack)
+    || catalog[0];
 }
 
 function uniqueIds(ids) {
@@ -1029,7 +1035,7 @@ function compactTrack(track) {
     album: track.album,
     tags: track.tags,
     source: track.source || "local",
-    playable: Boolean(track.audioUrl)
+    playable: isPlayableTrack(track)
   };
 }
 
@@ -1310,6 +1316,7 @@ function scoreTrack(track, intent = {}) {
 
 function recommend(intent = {}, limit = 6) {
   return [...catalog]
+    .filter(isPlayableTrack)
     .sort((a, b) => scoreTrack(b, intent) - scoreTrack(a, intent))
     .slice(0, limit);
 }
@@ -1353,6 +1360,7 @@ function localRecommendations(limit = 8) {
   const intent = recommendationIntent();
   const excluded = new Set([state.currentTrackId, ...(state.history || []).slice(-5), ...(state.dislikes || [])]);
   return shuffleItems(catalog)
+    .filter(isPlayableTrack)
     .filter((track) => !excluded.has(track.id))
     .filter((track) => !(track.tags || []).some((tag) => (profile.blockedTags || []).includes(tag)))
     .map((track) => ({
@@ -1541,7 +1549,7 @@ function getPayload(session = sessionContext.getStore()) {
       context,
       profile: cloneJson(profile),
       current,
-      catalog,
+      catalog: catalog.filter(isPlayableTrack),
       queue: (state.queue || []).map(getTrack),
       history: (state.history || []).map(getTrack),
       messages: state.messages || [],
@@ -1775,7 +1783,9 @@ async function handleApiForSession(req, res, pathname, userSession) {
     return sendJson(res, getPayload(userSession));
   }
   if (req.method === "GET" && pathname === "/api/now") return sendJson(res, getPayload(userSession));
-  if (req.method === "GET" && pathname === "/api/catalog") return sendJson(res, { catalog, payload: getPayload(userSession) });
+  if (req.method === "GET" && pathname === "/api/catalog") {
+    return sendJson(res, { catalog: catalog.filter(isPlayableTrack), payload: getPayload(userSession) });
+  }
   if (req.method === "GET" && pathname === "/api/taste") return sendJson(res, cloneJson(profile));
   if (req.method === "GET" && pathname === "/api/netease/account/status") {
     return sendJson(res, await getNeteaseLoginStatus(userSession));
