@@ -29,6 +29,17 @@ npx vercel --prod
 
 现在可以先分别到 Google Search Console、Bing Webmaster Tools、百度搜索资源平台提交 `https://git-yinbokang3-droids-projects.vercel.app/sitemap.xml`。如果之后绑定了自定义域名，再把 sitemap 和 canonical URL 改成新域名。
 
+## DeepSeek 对话配置
+
+如果要让手机或朋友访问线上站点时也能完整回答普通问题，需要在 Vercel 项目里配置环境变量：
+
+- `DEEPSEEK_API_KEY`：你的 DeepSeek API 密钥
+- `DEEPSEEK_MODEL`：可选，默认使用 `deepseek-v4-flash`
+
+配置位置：Vercel 项目 -> Settings -> Environment Variables。保存后重新部署一次项目。
+
+没有配置 `DEEPSEEK_API_KEY` 时，线上页面仍能处理播放、搜索、切歌等本地音乐指令，也会对少量常见问题做兜底回答，但不能像真正 AI 一样回答所有问题。
+
 ## 线上运行限制
 
 Vercel 是无状态运行环境。项目已做只读保护，但本地上传音频、长期保存网易云登录 Cookie、跨设备共享服务端歌单状态，最好接外部数据库或长期运行的后端服务。
