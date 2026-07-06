@@ -1,4 +1,5 @@
 data/netease-session.json
+data/netease-sessions.json
 .env
 .env.local
 public/media/*
