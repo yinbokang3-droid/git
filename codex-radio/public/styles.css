@@ -427,7 +427,7 @@ h2 {
   height: 100%;
   z-index: 2;
   cursor: crosshair;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 .cover-copy {
@@ -1742,7 +1742,13 @@ input[type="range"] {
   }
 
   .now-panel {
-    min-height: 680px;
+    min-height: 660px;
+    touch-action: pan-y;
+  }
+
+  .cover,
+  #visualizer {
+    touch-action: pan-y;
   }
 
   .album-orb {

@@ -1244,21 +1244,27 @@ function getParticleCover() {
   };
 
   const pointer = (event) => {
+    if (event.pointerType === "touch") return;
     const rect = canvas.getBoundingClientRect();
     visualizer.mouse.x = event.clientX - rect.left;
     visualizer.mouse.y = event.clientY - rect.top;
     visualizer.mouse.active = true;
   };
 
-  canvas.addEventListener("pointermove", pointer);
-  canvas.addEventListener("pointerenter", pointer);
+  canvas.addEventListener("pointermove", pointer, { passive: true });
+  canvas.addEventListener("pointerenter", pointer, { passive: true });
   canvas.addEventListener("pointerleave", () => {
     visualizer.mouse.active = false;
-  });
+  }, { passive: true });
   canvas.addEventListener("pointerdown", (event) => {
-    pointer(event);
-    burstParticles(visualizer, visualizer.mouse.x, visualizer.mouse.y, 7);
-  });
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    if (event.pointerType !== "touch") {
+      pointer(event);
+    }
+    burstParticles(visualizer, x, y, event.pointerType === "touch" ? 4 : 7);
+  }, { passive: true });
   cover.addEventListener("click", (event) => {
     const rect = canvas.getBoundingClientRect();
     burstParticles(visualizer, event.clientX - rect.left, event.clientY - rect.top, 8);
@@ -1274,8 +1280,10 @@ function visualizerQuality() {
   const coarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches;
   const narrowScreen = Math.min(window.innerWidth || 1024, window.innerHeight || 768) < 720;
   const lowMemory = Number(navigator.deviceMemory || 8) <= 4;
+  const lowCores = Number(navigator.hardwareConcurrency || 8) <= 4;
   if (reducedMotion) return 0.38;
-  if (coarsePointer || narrowScreen || lowMemory) return 0.58;
+  if ((coarsePointer && narrowScreen) || lowMemory || lowCores) return 0.38;
+  if (coarsePointer || narrowScreen) return 0.48;
   return 1;
 }
 
@@ -1283,7 +1291,7 @@ function ensureParticleCanvas(visualizer) {
   const { canvas, ctx } = visualizer;
   const rect = canvas.getBoundingClientRect();
   const quality = visualizerQuality();
-  const dpr = Math.min(window.devicePixelRatio || 1, quality < 0.7 ? 1.15 : 1.65);
+  const dpr = Math.min(window.devicePixelRatio || 1, quality < 0.5 ? 0.95 : quality < 0.7 ? 1.05 : 1.65);
   const width = Math.max(320, rect.width || canvas.width);
   const height = Math.max(320, rect.height || canvas.height);
   const targetWidth = Math.floor(width * dpr);
@@ -1307,7 +1315,10 @@ function seedParticles(visualizer) {
   const cx = width * 0.5;
   const cy = height * 0.5;
   const quality = visualizerQuality();
-  const count = Math.floor(Math.max(150, Math.min(520 * quality, Math.floor((width * height) / (quality < 0.7 ? 3100 : 1800)))));
+  const count = Math.floor(Math.max(
+    quality < 0.5 ? 70 : 120,
+    Math.min(520 * quality, Math.floor((width * height) / (quality < 0.5 ? 7600 : quality < 0.7 ? 5200 : 1800)))
+  ));
   while (visualizer.particles.length < count) {
     const angle = Math.random() * Math.PI * 2;
     const orbit = Math.min(width, height) * (0.18 + Math.random() * 0.52);
@@ -1341,11 +1352,11 @@ function buildAlbumParticles(visualizer, force = false) {
   const coverSize = Math.min(width, height) * (0.54 + spread * 0.065);
   const centerX = width * 0.5;
   const centerY = height * 0.51;
-  const maxColumns = quality < 0.7 ? 88 : 140;
-  const maxRows = quality < 0.7 ? 62 : 96;
-  const baseStep = quality < 0.7 ? 18.2 : 13.4;
-  const columns = Math.max(54, Math.min(maxColumns, Math.floor(width / (baseStep / density))));
-  const rows = Math.max(36, Math.min(maxRows, Math.floor(height / (baseStep / density))));
+  const maxColumns = quality < 0.5 ? 54 : quality < 0.7 ? 72 : 140;
+  const maxRows = quality < 0.5 ? 38 : quality < 0.7 ? 52 : 96;
+  const baseStep = quality < 0.5 ? 24 : quality < 0.7 ? 20.5 : 13.4;
+  const columns = Math.max(quality < 0.5 ? 34 : 46, Math.min(maxColumns, Math.floor(width / (baseStep / density))));
+  const rows = Math.max(quality < 0.5 ? 24 : 32, Math.min(maxRows, Math.floor(height / (baseStep / density))));
   const stepX = width / Math.max(1, columns - 1);
   const stepY = height / Math.max(1, rows - 1);
   const previousKey = `${Math.round(width)}:${Math.round(height)}:${columns}:${rows}:${visualizer.styleVersion || 0}:${visualizer.coverUrl}`;
@@ -1484,9 +1495,20 @@ function startParticleCover() {
 }
 
 function drawParticleCover(visualizer, now = performance.now()) {
+  if (document.hidden) {
+    visualizer.lastTime = now;
+    return;
+  }
+  const rect = visualizer.canvas.getBoundingClientRect();
+  if (rect.bottom < -80 || rect.top > window.innerHeight + 80) {
+    visualizer.lastTime = now;
+    return;
+  }
   const quality = visualizerQuality();
   visualizer.frameSkip = (visualizer.frameSkip || 0) + 1;
-  if (quality < 0.7 && !visualizer.mouse.active && !visualizer.scatter && !visualizer.transitionBoost && !visualizer.needsClear && visualizer.frameSkip % 2) {
+  const mobileLite = quality < 0.5;
+  const frameModulo = mobileLite ? 3 : 2;
+  if (quality < 0.7 && !visualizer.mouse.active && !visualizer.scatter && !visualizer.transitionBoost && !visualizer.needsClear && visualizer.frameSkip % frameModulo) {
     return;
   }
   seedParticles(visualizer);
@@ -1595,33 +1617,37 @@ function drawParticleCover(visualizer, now = performance.now()) {
     const focus = Math.max(0.36, particle.focus || 0.72);
     const coreAlpha = Math.min(isAlbumParticle ? 0.42 : 0.24, ((isAlbumParticle ? 0.058 : 0.034) + shimmer * 0.090) * focus * intensity * (0.82 + glowScale * 0.22));
     const glowRadius = radius * (isAlbumParticle ? 2.8 + softness * 0.72 : 3.6 + softness * 0.82);
-    const glow = ctx.createRadialGradient(particle.x, particle.y, 0, particle.x, particle.y, glowRadius);
-    glow.addColorStop(0, `hsla(${toneHue}, ${toneSaturation}%, ${toneLightness + 8}%, ${coreAlpha * 0.34})`);
-    glow.addColorStop(0.52, `hsla(${toneHue}, ${toneSaturation}%, ${toneLightness}%, ${coreAlpha * 0.12})`);
-    glow.addColorStop(1, `hsla(${toneHue}, ${toneSaturation}%, ${toneLightness}%, 0)`);
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(particle.x, particle.y, glowRadius, 0, Math.PI * 2);
-    ctx.fill();
+    if (!mobileLite) {
+      const glow = ctx.createRadialGradient(particle.x, particle.y, 0, particle.x, particle.y, glowRadius);
+      glow.addColorStop(0, `hsla(${toneHue}, ${toneSaturation}%, ${toneLightness + 8}%, ${coreAlpha * 0.34})`);
+      glow.addColorStop(0.52, `hsla(${toneHue}, ${toneSaturation}%, ${toneLightness}%, ${coreAlpha * 0.12})`);
+      glow.addColorStop(1, `hsla(${toneHue}, ${toneSaturation}%, ${toneLightness}%, 0)`);
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, glowRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
-    ctx.fillStyle = `hsla(${toneHue}, ${toneSaturation}%, ${toneLightness + 10}%, ${coreAlpha})`;
+    ctx.fillStyle = `hsla(${toneHue}, ${toneSaturation}%, ${toneLightness + 10}%, ${mobileLite ? Math.min(coreAlpha * 1.65, 0.34) : coreAlpha})`;
     ctx.beginPath();
-    ctx.arc(particle.x, particle.y, radius, 0, Math.PI * 2);
+    ctx.arc(particle.x, particle.y, mobileLite ? Math.max(0.95, radius * 1.2) : radius, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
 
-  ctx.save();
-  ctx.globalCompositeOperation = "source-over";
-  ctx.strokeStyle = `rgba(170, 225, 238, ${0.030 + beat * 0.020})`;
-  ctx.lineWidth = 0.8;
-  for (let ring = 0; ring < 3; ring += 1) {
-    const radius = (baseOrbit * (0.72 + ring * 0.16)) * pulse + Math.sin(now / 850 + ring) * 8;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, radius * 1.04, radius * 0.84, Math.sin(now / 2600) * 0.18, 0, Math.PI * 2);
-    ctx.stroke();
+  if (!mobileLite) {
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.strokeStyle = `rgba(170, 225, 238, ${0.030 + beat * 0.020})`;
+    ctx.lineWidth = 0.8;
+    for (let ring = 0; ring < 3; ring += 1) {
+      const radius = (baseOrbit * (0.72 + ring * 0.16)) * pulse + Math.sin(now / 850 + ring) * 8;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, radius * 1.04, radius * 0.84, Math.sin(now / 2600) * 0.18, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
-  ctx.restore();
 }
 
 function roundRect(ctx, x, y, width, height, radius) {
