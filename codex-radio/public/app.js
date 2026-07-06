@@ -119,6 +119,7 @@ const app = {
 
 const CACHE_VERSION = "v3";
 const ACCOUNT_CACHE_PREFIX = `codex-radio:${CACHE_VERSION}:netease`;
+const USER_SESSION_CACHE_KEY = `codex-radio:${CACHE_VERSION}:user-session`;
 const ACCOUNT_SYNC_INTERVAL = 8 * 60 * 1000;
 
 function readLocalCache(key, fallback = null) {
@@ -143,6 +144,49 @@ function removeLocalCache(key) {
   try {
     localStorage.removeItem(key);
   } catch {}
+}
+
+function trackIds(tracks = []) {
+  return (tracks || []).map((track) => track?.id).filter(Boolean);
+}
+
+function portableSessionState(payload) {
+  if (!payload) return null;
+  return {
+    profile: payload.profile || null,
+    state: {
+      currentTrackId: payload.current?.id || "",
+      queue: trackIds(payload.queue),
+      history: trackIds(payload.history),
+      messages: Array.isArray(payload.messages) ? payload.messages.slice(-80) : [],
+      likes: Array.isArray(payload.likes) ? payload.likes : [],
+      dislikes: Array.isArray(payload.dislikes) ? payload.dislikes : [],
+      plan: payload.plan || null,
+      recommendations: Array.isArray(payload.recommendations) ? payload.recommendations.slice(0, 24) : [],
+      lastReason: payload.lastReason || ""
+    },
+    savedAt: Date.now()
+  };
+}
+
+function saveUserSessionSnapshot(payload = app.state) {
+  const snapshot = portableSessionState(payload);
+  if (snapshot) writeLocalCache(USER_SESSION_CACHE_KEY, snapshot);
+}
+
+async function restoreUserSessionSnapshot() {
+  const snapshot = readLocalCache(USER_SESSION_CACHE_KEY);
+  if (!snapshot?.profile && !snapshot?.state) return null;
+  try {
+    const payload = await api("/api/session/restore", {
+      method: "POST",
+      body: JSON.stringify(snapshot)
+    });
+    render(payload);
+    return payload;
+  } catch {
+    return null;
+  }
 }
 
 function neteaseCacheScope() {
@@ -421,6 +465,7 @@ function setConnection(online) {
 function render(payload = app.state) {
   if (!payload) return;
   app.state = payload;
+  saveUserSessionSnapshot(payload);
   syncPlaylistFromPayload(payload);
   const { current, context, profile, queue, messages, plan, recommendations, lastReason, catalog, netease } = payload;
   const name = profile.name || "你";
@@ -2317,6 +2362,7 @@ async function boot() {
   renderNeteaseResults([]);
   renderPlaylists([]);
   renderAccountSongs([]);
+  await restoreUserSessionSnapshot();
   await loadNow();
   const recommendationResult = await api("/api/recommendations?limit=8").catch(() => null);
   if (recommendationResult?.payload) render(recommendationResult.payload);

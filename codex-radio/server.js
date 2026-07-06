@@ -1,5 +1,6 @@
 import http from "node:http";
 import net from "node:net";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createRequire } from "node:module";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { createReadStream } from "node:fs";
@@ -31,8 +32,11 @@ let managedNeteaseApi = null;
 await mkdir(ttsDir, { recursive: true }).catch(() => {});
 
 let catalog = JSON.parse(await readFile(catalogPath, "utf8"));
-let profile = JSON.parse(await readFile(profilePath, "utf8"));
-let state = JSON.parse(await readFile(statePath, "utf8"));
+const defaultProfile = createAppProfile(JSON.parse(await readFile(profilePath, "utf8")));
+const defaultState = createAppState();
+const sessionContext = new AsyncLocalStorage();
+const profile = createSessionProxy("appProfile", defaultProfile);
+const state = createSessionProxy("appState", defaultState);
 const neteaseSessions = new Map(
   Object.entries(await readJsonFile(neteaseSessionsPath, {}))
     .filter(([id]) => isValidSessionId(id))
@@ -66,11 +70,105 @@ function isValidSessionId(value) {
   return /^[a-zA-Z0-9_-]{16,80}$/.test(String(value || ""));
 }
 
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value ?? {}));
+}
+
+function createAppProfile(value = {}) {
+  return {
+    name: "你",
+    city: "本地",
+    preferredTags: ["focus", "calm", "clean", "warm"],
+    blockedTags: [],
+    voiceEnabled: true,
+    voiceMode: "neural",
+    neuralVoice: "zh-CN-XiaoxiaoNeural",
+    voiceName: "",
+    voiceRate: 0.95,
+    voicePitch: 0.9,
+    crossfade: 6,
+    routines: {},
+    ...cloneJson(value)
+  };
+}
+
+function validTrackIds(ids, limit = 80) {
+  const valid = new Set(catalog.map((track) => track.id));
+  return uniqueIds((Array.isArray(ids) ? ids : []).map(String))
+    .filter((id) => valid.has(id))
+    .slice(0, limit);
+}
+
+function createAppState(value = {}) {
+  const queue = validTrackIds(value.queue, 30);
+  const fallbackQueue = catalog.slice(0, 8).map((track) => track.id);
+  const currentTrackId = validTrackIds([value.currentTrackId], 1)[0] || queue[0] || fallbackQueue[0] || "";
+  const initialQueue = queue.length ? uniqueIds([currentTrackId, ...queue]) : fallbackQueue;
+  return {
+    currentTrackId,
+    queue: uniqueIds([currentTrackId, ...initialQueue]).filter(Boolean).slice(0, 12),
+    history: validTrackIds(value.history, 80),
+    messages: Array.isArray(value.messages)
+      ? value.messages.slice(-80).map((item) => ({
+        role: item?.role === "user" ? "user" : "codex",
+        text: String(item?.text || "").slice(0, 1200),
+        time: String(item?.time || "")
+      })).filter((item) => item.text)
+      : [],
+    likes: validTrackIds(value.likes, 300),
+    dislikes: validTrackIds(value.dislikes, 300),
+    plan: value.plan || null,
+    recommendations: Array.isArray(value.recommendations) ? cloneJson(value.recommendations).slice(0, 24) : [],
+    lastReason: String(value.lastReason || "")
+  };
+}
+
+function activeSessionRecord(key, fallback) {
+  const session = sessionContext.getStore();
+  return session?.[key] || fallback;
+}
+
+function createSessionProxy(key, fallback) {
+  return new Proxy({}, {
+    get(_target, prop) {
+      const record = activeSessionRecord(key, fallback);
+      if (prop === "toJSON") return () => cloneJson(record);
+      if (prop === Symbol.toStringTag) return "Object";
+      return record[prop];
+    },
+    set(_target, prop, value) {
+      activeSessionRecord(key, fallback)[prop] = value;
+      return true;
+    },
+    deleteProperty(_target, prop) {
+      delete activeSessionRecord(key, fallback)[prop];
+      return true;
+    },
+    ownKeys() {
+      return Reflect.ownKeys(activeSessionRecord(key, fallback));
+    },
+    has(_target, prop) {
+      return prop in activeSessionRecord(key, fallback);
+    },
+    getOwnPropertyDescriptor(_target, prop) {
+      const record = activeSessionRecord(key, fallback);
+      const descriptor = Object.getOwnPropertyDescriptor(record, prop);
+      return descriptor ? { ...descriptor, configurable: true } : undefined;
+    }
+  });
+}
+
+function withSession(session, callback) {
+  return session ? sessionContext.run(session, callback) : callback();
+}
+
 function createNeteaseSession(id = randomUUID(), value = {}) {
   return {
     id,
     cookie: String(value.cookie || ""),
     profile: value.profile || null,
+    appProfile: createAppProfile(value.appProfile),
+    appState: createAppState(value.appState),
     playlistSongIdCache: { userId: "", expiresAt: 0, ids: new Set() },
     playlistTracksCache: new Map(),
     audioUrlCache: new Map()
@@ -80,10 +178,14 @@ function createNeteaseSession(id = randomUUID(), value = {}) {
 function persistableNeteaseSessions() {
   const payload = {};
   for (const [id, session] of neteaseSessions.entries()) {
-    if (!session.cookie && !session.profile) continue;
+    const hasAppData = JSON.stringify(session.appProfile) !== JSON.stringify(defaultProfile)
+      || JSON.stringify(session.appState) !== JSON.stringify(defaultState);
+    if (!session.cookie && !session.profile && !hasAppData) continue;
     payload[id] = {
       cookie: session.cookie || "",
-      profile: session.profile || null
+      profile: session.profile || null,
+      appProfile: session.appProfile,
+      appState: session.appState
     };
   }
   return payload;
@@ -1430,39 +1532,40 @@ function createPlan() {
   return state.plan;
 }
 
-function getPayload(session = null) {
-  const context = currentContext();
-  const current = getTrack(state.currentTrackId || state.queue?.[0]);
-  const accountProfile = session?.profile || null;
-  return {
-    context,
-    profile,
-    current,
-    catalog,
-    queue: (state.queue || []).map(getTrack),
-    history: (state.history || []).map(getTrack),
-    messages: state.messages || [],
-    likes: state.likes || [],
-    dislikes: state.dislikes || [],
-    plan: state.plan || createPlan(),
-    recommendations: state.recommendations || [],
-    lastReason: state.lastReason,
-    netease: {
-      mode: activeNeteaseMode,
-      enabled: true,
-      account: {
-        loggedIn: Boolean(accountProfile),
-        profile: accountProfile
+function getPayload(session = sessionContext.getStore()) {
+  return withSession(session, () => {
+    const context = currentContext();
+    const current = getTrack(state.currentTrackId || state.queue?.[0]);
+    const accountProfile = session?.profile || null;
+    return {
+      context,
+      profile: cloneJson(profile),
+      current,
+      catalog,
+      queue: (state.queue || []).map(getTrack),
+      history: (state.history || []).map(getTrack),
+      messages: state.messages || [],
+      likes: state.likes || [],
+      dislikes: state.dislikes || [],
+      plan: state.plan || createPlan(),
+      recommendations: state.recommendations || [],
+      lastReason: state.lastReason,
+      netease: {
+        mode: activeNeteaseMode,
+        enabled: true,
+        account: {
+          loggedIn: Boolean(accountProfile),
+          profile: accountProfile
+        }
       }
-    }
-  };
+    };
+  });
 }
 
 async function saveAll() {
   await Promise.all([
     saveCatalog(),
-    writeJsonIfPossible(profilePath, profile),
-    writeJsonIfPossible(statePath, state)
+    saveNeteaseSessions()
   ]);
 }
 
@@ -1476,9 +1579,11 @@ function sendJson(res, payload, status = 200) {
 
 function broadcast(event, payload) {
   for (const client of clients) {
-    const data = typeof payload === "function"
-      ? payload(client.session)
-      : payload || getPayload(client.session);
+    const data = withSession(client.session, () => (
+      typeof payload === "function"
+        ? payload(client.session)
+        : payload || getPayload(client.session)
+    ));
     client.res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   }
 }
@@ -1658,9 +1763,20 @@ function advanceTrack() {
 
 async function handleApi(req, res, pathname) {
   const userSession = getRequestNeteaseSession(req, res);
+  return sessionContext.run(userSession, () => handleApiForSession(req, res, pathname, userSession));
+}
+
+async function handleApiForSession(req, res, pathname, userSession) {
+  if (req.method === "POST" && pathname === "/api/session/restore") {
+    const body = await readBody(req);
+    if (body.profile) userSession.appProfile = createAppProfile(body.profile);
+    if (body.state) userSession.appState = createAppState(body.state);
+    await saveNeteaseSessions();
+    return sendJson(res, getPayload(userSession));
+  }
   if (req.method === "GET" && pathname === "/api/now") return sendJson(res, getPayload(userSession));
   if (req.method === "GET" && pathname === "/api/catalog") return sendJson(res, { catalog, payload: getPayload(userSession) });
-  if (req.method === "GET" && pathname === "/api/taste") return sendJson(res, profile);
+  if (req.method === "GET" && pathname === "/api/taste") return sendJson(res, cloneJson(profile));
   if (req.method === "GET" && pathname === "/api/netease/account/status") {
     return sendJson(res, await getNeteaseLoginStatus(userSession));
   }
@@ -1809,7 +1925,7 @@ async function handleApi(req, res, pathname) {
   }
   if (req.method === "POST" && pathname === "/api/taste") {
     const body = await readBody(req);
-    profile = { ...profile, ...body };
+    Object.assign(profile, body);
     buildQueue(inferIntent(""));
     await saveAll();
     broadcast("profile");
