@@ -845,7 +845,7 @@ function normalizeAiCommand(command, message) {
   const action = String(command?.action || "recommend").toLowerCase();
   return {
     action,
-    say: String(command?.say || "").slice(0, 220),
+    say: String(command?.say || "").slice(0, action === "answer" ? 900 : 220),
     query: String(command?.query || "").trim(),
     tags: normalizeTagList(command?.tags || []),
     energy: command?.energy ? Math.min(5, Math.max(1, Number(command.energy))) : null,
@@ -866,12 +866,13 @@ async function askDeepSeekForCommand(message) {
       {
         role: "system",
         content: [
-          "你是 Codex Radio 的 DJ 指令解析器。",
+          "你是 Codex Radio 的 AI 音乐助手，既能理解音乐播放指令，也能回答用户的普通问题。",
           "只返回 JSON，不要 Markdown。",
-          "你要把用户自然语言转成可执行动作。",
-          "可用 action: recommend, search_play, next, like, dislike, plan, explain, stop。",
+          "你要把用户自然语言转成可执行动作；如果用户是在问普通知识、解释概念、聊天或追问问题，用 answer。",
+          "可用 action: answer, recommend, search_play, next, like, dislike, plan, explain, stop。",
+          "answer 用于普通问答，不要改变播放队列；只有用户明确说播放、搜索歌曲、来一首、下一首、喜欢、不喜欢、暂停时，才使用音乐相关 action。",
           "recommend 用于按心情/场景重排队列；search_play 用于用户明确要播放某首歌、某歌手或某关键词；next 用于下一首；like/dislike 用于反馈当前歌；plan 用于今日计划；explain 用于解释当前选择；stop 用于暂停意图。",
-          "JSON 格式: {\"action\":\"recommend\",\"say\":\"给用户听的短句\",\"query\":\"歌曲/歌手/关键词，可空\",\"tags\":[\"focus\"],\"energy\":1-5,\"reason\":\"简短原因\"}"
+          "JSON 格式: {\"action\":\"answer\",\"say\":\"直接回答用户问题，中文自然表达\",\"query\":\"歌曲/歌手/关键词，可空\",\"tags\":[\"focus\"],\"energy\":1-5,\"reason\":\"简短原因\"}"
         ].join("\n")
       },
       {
@@ -917,6 +918,16 @@ async function askDeepSeekForCommand(message) {
 
 function localCommandFallback(message) {
   const lower = message.toLowerCase();
+  if (looksLikeGeneralQuestion(message)) {
+    return {
+      action: "answer",
+      say: answerWithLocalKnowledge(message) || "这个问题需要 AI 接口来回答。当前线上环境还没有配置 DeepSeek 密钥，所以我只能处理播放、搜索、切歌这些本地音乐指令。",
+      tags: [],
+      query: "",
+      energy: null,
+      reason: "没有可用的 DeepSeek 响应，已避免把普通问题误判成播放指令。"
+    };
+  }
   if (/换|下一首|skip|next/.test(lower)) return { action: "next", say: "好，换一首。", tags: [], query: "", energy: null, reason: "用户要求切歌。" };
   if (/喜欢|收藏|like/.test(lower)) return { action: "like", say: "记住了，我会多放这种质感。", tags: [], query: "", energy: null, reason: "用户喜欢当前歌曲。" };
   if (/不喜欢|别放|dislike/.test(lower)) return { action: "dislike", say: "收到，这类声音先降权。", tags: [], query: "", energy: null, reason: "用户不喜欢当前歌曲。" };
@@ -927,6 +938,28 @@ function localCommandFallback(message) {
   }
   const intent = inferIntent(message);
   return { action: "recommend", say: "我按你的状态重排队列。", query: "", tags: intent.tags || [], energy: intent.energy, reason: "本地规则识别心情和场景。" };
+}
+
+function looksLikeGeneralQuestion(message = "") {
+  const text = String(message).trim();
+  if (!text) return false;
+  if (/^(播放|放|来一首|搜索|帮我搜|下一首|上一首|暂停|停止|别放|喜欢|不喜欢)/.test(text)) return false;
+  return /[？?]$|^(什么是|什么叫|为什么|怎么|如何|多少|多久|哪里|谁|能不能回答|你知道|解释一下|讲一下|问你|我是问你)/.test(text)
+    || /(有多大|是多少|什么意思|是什么|为什么|怎么回事|能回答|回答我的问题)/.test(text);
+}
+
+function answerWithLocalKnowledge(message = "") {
+  const text = String(message);
+  if (/银河系.*(多大|直径)|银河系.*多少/.test(text)) {
+    return "银河系的可见盘面直径大约 10 万到 12 万光年，如果把外层稀薄的恒星晕也算进去，范围可能更大。";
+  }
+  if (/太阳系.*(多大|范围)|太阳系.*多少/.test(text)) {
+    return "太阳系没有一个特别硬的边界。按海王星轨道算，直径约 60 个天文单位；按日球层边界算，半径大约 100 多个天文单位；如果把奥尔特云也算进去，可能延伸到约 1 到 2 光年。";
+  }
+  if (/地球.*(多大|直径|周长)|地球.*多少/.test(text)) {
+    return "地球平均直径约 12742 公里，赤道周长约 40075 公里，表面积约 5.1 亿平方公里。";
+  }
+  return "";
 }
 
 function matchCatalog(query) {
@@ -994,7 +1027,10 @@ async function executeDjCommand(command) {
   let say = command.say || "收到。";
   let reason = command.reason || "";
 
-  if (command.action === "next") {
+  if (command.action === "answer") {
+    say = command.say || "我在，可以直接问我问题。";
+    reason ||= "普通问答，不改变播放状态。";
+  } else if (command.action === "next") {
     advanceTrack();
     const current = getTrack(state.currentTrackId);
     say ||= `换到《${current.title}》。`;
