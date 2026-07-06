@@ -473,7 +473,7 @@ function render(payload = app.state) {
   const name = profile.name || "你";
 
   qs("#contextLabel").textContent = `${context.city} · ${context.weather} · ${context.time}`;
-  qs("#headline").textContent = `${name}的 Codex 首页`;
+  qs("#headline").textContent = `${name}的天天开心首页`;
   qs("#segmentPill").textContent = context.segment;
   qs("#trackTitle").textContent = current.title;
   qs("#trackTitle").dataset.echo = current.title;
@@ -860,9 +860,9 @@ function updateMediaSession(track = app.state?.current) {
   if (!("mediaSession" in navigator) || !track) return;
   try {
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: track.title || "Codex Radio",
+      title: track.title || "天天开心",
       artist: track.artist || "Unknown Artist",
-      album: track.album || "Codex Radio",
+      album: track.album || "天天开心",
       artwork: mediaArtwork(track)
     });
   } catch {}

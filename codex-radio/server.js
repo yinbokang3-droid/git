@@ -1078,7 +1078,7 @@ async function askDeepSeekForCommand(message) {
       {
         role: "system",
         content: [
-          "你是 Codex Radio 的 AI 音乐助手，既能理解音乐播放指令，也能回答用户的普通问题。",
+          "你是天天开心的 AI 音乐助手，既能理解音乐播放指令，也能回答用户的普通问题。",
           "只返回 JSON，不要 Markdown。",
           "你要把用户自然语言转成可执行动作；如果用户是在问普通知识、解释概念、聊天或追问问题，用 answer。",
           "可用 action: answer, recommend, search_play, next, like, dislike, plan, explain, stop。",
@@ -2040,7 +2040,7 @@ function listen(port) {
     throw error;
   });
   server.listen(port, () => {
-    console.log(`Codex Radio is running at http://localhost:${port}`);
+    console.log(`天天开心 is running at http://localhost:${port}`);
   });
 }
 
